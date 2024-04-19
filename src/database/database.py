@@ -1,7 +1,11 @@
 import logging
+import traceback
+from psycopg2.errors import UniqueViolation
+from typing import Union
 
 from sqlalchemy import create_engine
-from sqlalchemy.orm import DeclarativeBase, sessionmaker
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import DeclarativeBase, sessionmaker, Session, MappedAsDataclass
 import os
 
 engine = create_engine(os.getenv('DB_URI'))
@@ -41,20 +45,6 @@ def drop_all(tables: list = None):
         Base.metadata.drop_all(engine)
 
 
-def write(object_) -> bool:
-    """
-    Функция записи в базу данных
-    """
-    try:
-        with s_factory() as session:
-            session.add(object_)
-            session.commit()
-            return True
-    except Exception as e:
-        print(e)
-        return False
-
-
 def with_connection(func):
     def wrapper(*args, **kwargs):
         with s_factory() as session:
@@ -64,3 +54,20 @@ def with_connection(func):
                 logging.exception(e)
                 return 0
     return wrapper
+
+
+@with_connection
+def write(session: Session, objects: Union[list, Base]) -> bool:
+    """
+    Функция записи в базу данных
+    """
+    try:
+        if not isinstance(objects, list):
+            objects = [objects]
+        for object_ in objects:
+            session.add(object_)
+        session.commit()
+    except Exception as e:
+        logging.exception(e)
+        return False
+    return True
