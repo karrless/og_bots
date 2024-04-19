@@ -11,6 +11,7 @@ python-dotenv = "^1.0.1"
 vkbottle = "^4.3.12"
 sqlalchemy = "^2.0.29"
 psycopg2 = "^2.9.9"
+loguru = "^0.7.2"
 
 
 [build-system]

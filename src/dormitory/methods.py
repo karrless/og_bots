@@ -1,6 +1,3 @@
-import logging
-from typing import Union, Type
-
 from sqlalchemy.orm import Session
 
 from ..database import with_connection, write

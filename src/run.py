@@ -1,15 +1,16 @@
 from dotenv import load_dotenv
 
+
 load_dotenv()
 
 
 if __name__ == '__main__':
-    import logging
     import os
     import src.database as db
+    from src.bot import bot
+    from loguru import logger
 
-    logging.basicConfig(level=logging.DEBUG, filename='log.log', filemode='w',
-                        format='%(asctime)s: %(levelname)s — %(message)s')
+    logger.remove()
 
     DEBUG = int(os.getenv('DEBUG'))
 
@@ -19,5 +20,8 @@ if __name__ == '__main__':
         db.connect()
         # from src.dormitory.comforts import add_comforts
         # add_comforts()
+        logger.add('../log.log', level="DEBUG")
     else:
         db.connect()
+        logger.add('../log.log', level="INFO")
+    bot.run_forever()

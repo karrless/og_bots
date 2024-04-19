@@ -1,10 +1,9 @@
-import logging
-import traceback
-from psycopg2.errors import UniqueViolation
+from loguru import logger
+
 from typing import Union
 
 from sqlalchemy import create_engine
-from sqlalchemy.exc import IntegrityError
+
 from sqlalchemy.orm import DeclarativeBase, sessionmaker, Session, MappedAsDataclass
 import os
 
@@ -51,7 +50,8 @@ def with_connection(func):
             try:
                 return func(session, *args, **kwargs)
             except Exception as e:
-                logging.exception(e)
+                logger.exception(e)
+                # print(e)
                 return 0
     return wrapper
 
@@ -68,6 +68,7 @@ def write(session: Session, objects: Union[list, Base]) -> bool:
             session.add(object_)
         session.commit()
     except Exception as e:
-        logging.exception(e)
+        logger.exception(e)
+        # print(e)
         return False
     return True
