@@ -7,6 +7,7 @@ from . import Base, write
 class Comfort(Base):
     __tablename__ = 'comforts'
     name: Mapped[str] = mapped_column(unique=True, nullable=False, primary_key=True)
+    title: Mapped[str] = mapped_column(nullable=False)
     first: Mapped[str] = mapped_column(nullable=False)
     second: Mapped[int] = mapped_column(nullable=True)
     third: Mapped[int] = mapped_column(nullable=True)

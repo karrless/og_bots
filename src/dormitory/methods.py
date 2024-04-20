@@ -6,29 +6,34 @@ from ..database.models import Room, Comfort, User
 
 @with_connection
 def get_comfort(session: Session, first: str, second: int = None, third: int = None) -> Comfort | None:
-    comfort = session.query(Comfort).where(Comfort.first == first,
-                                           Comfort.second == second, Comfort.third == third).first()
-    return comfort
+    return session.query(Comfort).where(Comfort.first == first,
+                                        Comfort.second == second, Comfort.third == third).first()
 
 
 @with_connection
-def get_first_comfort_number(session: Session) -> list:
-    return session.query(Comfort.first).all()
+def get_first_comfort_number(session: Session) -> list[str]:
+    sets = sorted(set(session.query(Comfort.first).all()))
+    numbers = [x[0] for x in sets]
+    msg = numbers[-1:]
+    result = sorted(list(map(int, numbers[:-1]))) + msg
+    return list(map(str, result))
 
 
 @with_connection
-def get_second_comfort_number(session: Session, first: str) -> list:
-    return session.query(Comfort.second).where(Comfort.first == first).all()
+def get_second_comfort_number(session: Session, first: str) -> list[int]:
+    query = sorted(set(session.query(Comfort.second).where(Comfort.first == first).all()))
+    return [x[0] for x in query]
 
 
 @with_connection
-def get_third_comfort_number(session: Session, first: str, second: int) -> list:
-    return session.query(Comfort.third).where(Comfort.first == first, Comfort.second == second).all()
+def get_third_comfort_number(session: Session, first: str, second: int) -> list[int]:
+    query = session.query(Comfort.third).where(Comfort.first == first, Comfort.second == second).all()
+    return [x[0] for x in query]
 
 
 @with_connection
 def get_room(session: Session, comfort: Comfort, number: str) -> Room | None:
-    return session.query(Room).where(Room.comfort_name == comfort,
+    return session.query(Room).where(Room.comfort == comfort,
                                      Room.number == number).first()
 
 
