@@ -1,4 +1,4 @@
-from . import menu
+from . import menu, dormitory
 
-labelers = [menu.bl]
+labelers = [menu.bl, dormitory.bl]
 
