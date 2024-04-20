@@ -41,3 +41,11 @@ class User(Base):
     def set_room(self, room: Room) -> bool:
         self.room = room
         return write(self)
+
+    def set_faculty(self, faculty: str) -> bool:
+        self.faculty = faculty
+        return write(self)
+
+    def set_group(self, group: str) -> bool:
+        self.group = group
+        return write(self)
