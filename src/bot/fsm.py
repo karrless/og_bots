@@ -14,3 +14,5 @@ class Dormitory(BaseStateGroup):
     SECOND_NUMBER = 'second number'
 
     LAST_NUMBER = 'last number'
+
+    SELECT_ROOM = 'select room'

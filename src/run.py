@@ -1,3 +1,5 @@
+import sys
+
 from dotenv import load_dotenv
 
 
@@ -16,12 +18,13 @@ if __name__ == '__main__':
 
     if DEBUG:
         # db.drop_all()
-        db.create()
+        # db.create()
         db.connect()
         # from src.dormitory.comforts import add_comforts
         # add_comforts()
-        logger.add('../log.log', level="DEBUG")
+        logger.add('log.log', level="DEBUG")
     else:
         db.connect()
-        logger.add('../log.log', level="INFO")
+        logger.add('log.log', level="INFO")
     bot.run_forever()
+

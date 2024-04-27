@@ -56,19 +56,29 @@ def with_connection(func):
     return wrapper
 
 
-@with_connection
-def write(session: Session, objects: Union[list, Base]) -> bool:
+# @with_connection
+def write(object_: Base) -> bool:
     """
     Функция записи в базу данных
     """
     try:
-        if not isinstance(objects, list):
-            objects = [objects]
-        for object_ in objects:
+        with s_factory() as session:
             session.add(object_)
-        session.commit()
+            session.commit()
     except Exception as e:
         logger.exception(e)
-        # print(e)
+        print(e)
+        return False
+    return True
+
+
+def delete(object_: Base) -> bool:
+    try:
+        with s_factory() as session:
+            session.delete(object_)
+            session.commit()
+    except Exception as e:
+        logger.exception(e)
+        print(e)
         return False
     return True
