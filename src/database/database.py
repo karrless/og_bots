@@ -1,10 +1,6 @@
-from loguru import logger
-
-from typing import Union
-
 from sqlalchemy import create_engine
 
-from sqlalchemy.orm import DeclarativeBase, sessionmaker, Session, MappedAsDataclass
+from sqlalchemy.orm import DeclarativeBase, sessionmaker
 import os
 
 engine = create_engine(os.getenv('DB_URI'))
@@ -42,43 +38,3 @@ def drop_all(tables: list = None):
         Base.metadata.drop_all(engine, tables=tables)
     else:
         Base.metadata.drop_all(engine)
-
-
-def with_connection(func):
-    def wrapper(*args, **kwargs):
-        with s_factory() as session:
-            try:
-                return func(session, *args, **kwargs)
-            except Exception as e:
-                logger.exception(e)
-                # print(e)
-                return 0
-    return wrapper
-
-
-# @with_connection
-def write(object_: Base) -> bool:
-    """
-    Функция записи в базу данных
-    """
-    try:
-        with s_factory() as session:
-            session.add(object_)
-            session.commit()
-    except Exception as e:
-        logger.exception(e)
-        print(e)
-        return False
-    return True
-
-
-def delete(object_: Base) -> bool:
-    try:
-        with s_factory() as session:
-            session.delete(object_)
-            session.commit()
-    except Exception as e:
-        logger.exception(e)
-        print(e)
-        return False
-    return True

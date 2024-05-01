@@ -6,13 +6,13 @@ from vkbottle import GroupEventType
 
 from src.bot import bot, fsm
 from src.bot.handlers.menu import neighbour_menu
-from src.bot.keyboards import get_numbers_keyboard, main_menu_keyboard
-from src.bot.keyboards.dormitory import RoomsKeyboard, get_first_comfort_number_keyboard
+from src.bot.keyboards import get_numbers_keyboard, RoomsKeyboard, get_first_comfort_number_keyboard, \
+    get_main_menu_keyboard
 from src.bot.methods import get_user
-from src.database import s_factory, delete
+from src.database import s_factory
 from src.database.models import User, Comfort, Room
 from src.dormitory.methods import get_first_comfort_number, get_second_comfort_number, get_third_comfort_number, \
-    get_comfort, get_room, create_room
+    get_comfort, get_room
 
 bl = BotLabeler()
 bl.auto_rules = [rules.StateGroupRule(fsm.Dormitory), rules.PeerRule(from_chat=False)]
@@ -31,6 +31,7 @@ async def start_get_comfort(message: Message, _re: bool = False):
 async def get_second_comfort(message: Message, _re: bool = False):
     state = await bot.state_dispenser.get(message.peer_id)
     state = state.state.split(':')[1]
+
     if state == 'first number':
         first = message.text.upper()
         with s_factory() as session:
@@ -43,6 +44,7 @@ async def get_second_comfort(message: Message, _re: bool = False):
         await bot.state_dispenser.set(message.peer_id, fsm.Dormitory.SECOND_NUMBER, first=first)
     else:
         first = message.state_peer.payload['first']
+
     with s_factory() as session:
         numbers = get_second_comfort_number(session, first)
 
@@ -57,6 +59,7 @@ async def get_last_comfort(message: Message, _re: bool = False):
     state = await bot.state_dispenser.get(message.peer_id)
     state = state.state.split(':')[1]
     first = message.state_peer.payload['first']
+
     if state == 'second number':
         second = message.text.upper()
         if second == 'НАЗАД':
@@ -67,6 +70,7 @@ async def get_last_comfort(message: Message, _re: bool = False):
         await bot.state_dispenser.set(message.peer_id, fsm.Dormitory.LAST_NUMBER, first=first, second=second)
     else:
         second = message.state_peer.payload['second']
+
     with s_factory() as session:
         numbers = get_third_comfort_number(session, first, second)
     if not numbers[0]:
@@ -87,6 +91,7 @@ async def get_room_number(message: Message, _re: bool = False):
     state = state.state.split(':')[1]
     first = message.state_peer.payload['first']
     second = message.state_peer.payload['second']
+
     if state == 'last number':
         third = message.text.upper()
         if third == 'НАЗАД':
@@ -104,11 +109,13 @@ async def get_room_number(message: Message, _re: bool = False):
     with s_factory() as session:
         user: User = get_user(session, message.peer_id)
         comfort: Comfort = get_comfort(session, first, second, third)
+        user.comfort = comfort
+        session.add(user)
+        session.commit()
         rooms = [x.number for x in comfort.rooms]
-    user.set_comfort(comfort)
 
-    keyboard = RoomsKeyboard(
-        [])
+    keyboard = RoomsKeyboard(rooms)
+
     text = (f'Отлично, твоя комфортность сохранена!\n'
             f'Теперь напиши номер своей комнаты\n\n'
             f'Если у тебя буква в номере комнаты, используй латиницу, т.е. "a" или "b".')
@@ -118,9 +125,6 @@ async def get_room_number(message: Message, _re: bool = False):
 
 @bl.message(state=fsm.Dormitory.SELECT_ROOM)
 async def set_room(message: Message):
-    state = await bot.state_dispenser.get(message.peer_id)
-    state = state.state.split(':')[1]
-    first = message.state_peer.payload['first']
     second = message.state_peer.payload['second']
     third = message.state_peer.payload['third']
 
@@ -144,18 +148,16 @@ async def set_room(message: Message):
         if not input_room:
             new_room = Room(comfort=comfort, number=room_number)
             session.add(new_room)
-            session.commit()
         else:
             new_room = input_room
 
         user.room = new_room
         session.add(user)
-        session.commit()
 
         if pre_room:
             if len(pre_room.users) <= 1:
                 session.delete(pre_room)
-                session.commit()
+        session.commit()
         neighbours = new_room.users
 
     for neighbour in neighbours:
@@ -164,7 +166,7 @@ async def set_room(message: Message):
                                         message=f'У тебя новый сосед:\n'
                                                 f'{user.name} {user.surname} @{user.screen_name}',
                                         random_id=random.randint(1, user.peer_id),
-                                        keyboard=main_menu_keyboard)
+                                        keyboard=get_main_menu_keyboard())
 
     return await neighbour_menu(message)
 

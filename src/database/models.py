@@ -1,7 +1,7 @@
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 
-from . import Base, write
+from src.database import Base
 
 
 class User(Base):
@@ -13,14 +13,6 @@ class User(Base):
     surname: Mapped[str] = mapped_column(nullable=False)
     room_id: Mapped[int] = mapped_column(ForeignKey('rooms.id'), nullable=True)
     comfort_name: Mapped[str] = mapped_column(ForeignKey('comforts.name'), nullable=True)
-
-    def set_comfort(self, comfort) -> bool:
-        self.comfort = comfort
-        return write(self)
-
-    def set_room(self, room) -> bool:
-        self.room = room
-        return write(self)
 
 
 class Comfort(Base):
@@ -40,5 +32,4 @@ class Room(Base):
     number: Mapped[str] = mapped_column(unique=False)
     comfort_name: Mapped[str] = mapped_column(ForeignKey('comforts.name'), nullable=True)
     users = relationship('User', backref='room')
-
 

@@ -4,9 +4,11 @@ from vkbottle import Keyboard, KeyboardButtonColor, Text
 
 IS_DORM = int(os.getenv('DEBUG'))
 
-main_menu_keyboard_builder = Keyboard(one_time=False, inline=False)
-main_menu_keyboard_builder.add(Text('FAQ'), color=KeyboardButtonColor.NEGATIVE)
-if IS_DORM:
-    main_menu_keyboard_builder.row()
-    main_menu_keyboard_builder.add(Text('Найти соседей'), color=KeyboardButtonColor.SECONDARY)
-main_menu_keyboard = main_menu_keyboard_builder.get_json()
+
+def get_main_menu_keyboard():
+    keyboard = Keyboard(one_time=False, inline=False)
+    keyboard.add(Text('FAQ'))
+    if IS_DORM:
+        keyboard.row()
+        keyboard.add(Text('Найти соседей'), color=KeyboardButtonColor.POSITIVE)
+    return keyboard.get_json()

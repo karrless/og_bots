@@ -1,4 +1,4 @@
 from .bot import bot
-from . import handlers
+from . import handlers, methods
 
-__all__ = [bot, handlers]
+__all__ = [bot, handlers, methods]

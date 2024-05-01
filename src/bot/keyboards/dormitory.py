@@ -3,21 +3,22 @@ from math import ceil
 from vkbottle import Keyboard, KeyboardButtonColor, Text, Callback
 
 from src.database import s_factory
-from src.database.models import Room
 from src.dormitory.methods import get_first_comfort_number
 
-dorm_menu_keyboard_builder = Keyboard(one_time=False, inline=False)
 
-dorm_menu_keyboard = dorm_menu_keyboard_builder.get_json()
+def get_dorm_menu_keyboard(is_dorm_exist: bool = True) -> str:
 
-start_dorm_keyboard_builder = Keyboard(one_time=False, inline=False)
-start_dorm_keyboard_builder.add(Text('Указать жильё'), color=KeyboardButtonColor.POSITIVE)
-start_dorm_keyboard_builder.row()
-start_dorm_keyboard_builder.add(Text('Обратно в меню'))
-start_dorm_keyboard = start_dorm_keyboard_builder.get_json()
+    keyboard = Keyboard(one_time=False, inline=False)
+    if is_dorm_exist:
+        pass
+    else:
+        keyboard.add(Text('Указать жильё'), color=KeyboardButtonColor.POSITIVE)
+        keyboard.row()
+        keyboard.add(Text('Обратно в меню'))
+    return keyboard.get_json()
 
 
-def get_numbers_keyboard(arr: list, back:bool = True) -> str:
+def get_numbers_keyboard(arr: list, back: bool = True) -> str:
     keyboard = Keyboard(one_time=False, inline=False)
     counter = 0
     for number in arr:

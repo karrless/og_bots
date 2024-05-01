@@ -3,11 +3,11 @@ from vkbottle.bot import BotLabeler, rules, Message, MessageEvent
 from vkbottle import GroupEventType
 
 from src.bot import bot, fsm
-from src.bot.keyboards import main_menu_keyboard, dorm_menu_keyboard, start_dorm_keyboard
-from src.bot.methods import get_user, create_user
+from src.bot.keyboards import get_main_menu_keyboard, get_dorm_menu_keyboard
+from src.bot.methods import get_user
 from src.database import s_factory
 from src.database.models import User
-from src.dormitory.methods import get_neighbours
+
 
 bl = BotLabeler()
 bl.auto_rules = [rules.PeerRule(from_chat=False)]
@@ -19,8 +19,14 @@ async def start_message(message: Message):
     with s_factory() as session:
         if not get_user(session, message.peer_id):
             user = (await bot.api.users.get(message.peer_id, fields=['screen_name']))[0]
-            create_user(message.peer_id, user.screen_name, user.first_name, user.last_name)
-    return await message.answer(f'Привет, чмоня!', keyboard=main_menu_keyboard)
+            session.add(
+                User(peer_id=message.peer_id,
+                     screen_name=user.screen_name,
+                     name=user.first_name,
+                     surname=user.last_name)
+            )
+            session.commit()
+    return await message.answer(f'Привет, чмоня!', keyboard=get_main_menu_keyboard())
 
 
 @bl.message(text='Найти соседей')
@@ -30,7 +36,7 @@ async def neighbour_menu(message: Message):
         user: User = get_user(session, message.peer_id)
         if user.room_id:
             await bot.state_dispenser.set(message.peer_id, fsm.Dormitory.MENU)
-            keyboard = dorm_menu_keyboard
+            keyboard = get_dorm_menu_keyboard()
             neighbours: list[User] = user.room.users
             if len(neighbours) > 1:
                 text += f'{user.room.comfort_name}: {user.comfort.title}, комната {user.room.number}\n\n'
@@ -44,7 +50,7 @@ async def neighbour_menu(message: Message):
             text += 'Возможно не все ещё зарегистрировались. Если появятся новые соседи - тебе придет сообщение'
         else:
             await bot.state_dispenser.set(message.peer_id, fsm.Dormitory.NEW)
-            keyboard = start_dorm_keyboard
+            keyboard = get_dorm_menu_keyboard(False)
             text = ('Я пока не знаю, какое у тебя общежитие.\n\n'
                     'Напиши "Указать жильё" или нажми соответсвующую кнопку.')
     return await message.answer(text, keyboard=keyboard)
