@@ -9,7 +9,7 @@ def get_comfort(session: Session, first: str, second: int = None, third: int = N
 
 
 def get_room(session: Session, comfort: Comfort, number: str) -> Room | None:
-    return session.query(Room).where(Room.comfort == comfort,
+    return session.query(Room).where(Room.comfort_name == comfort.name,
                                      Room.number == number).first()
 
 
