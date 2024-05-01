@@ -10,11 +10,12 @@ def get_dorm_menu_keyboard(is_dorm_exist: bool = True) -> str:
 
     keyboard = Keyboard(one_time=False, inline=False)
     if is_dorm_exist:
-        pass
+        keyboard.add(Text('Изменить общежитие'))
+        keyboard.add(Text('Изменить комнату'))
     else:
         keyboard.add(Text('Указать жильё'), color=KeyboardButtonColor.POSITIVE)
-        keyboard.row()
-        keyboard.add(Text('Обратно в меню'))
+    keyboard.row()
+    keyboard.add(Text('Обратно в меню'))
     return keyboard.get_json()
 
 

@@ -1,3 +1,4 @@
+from src.database import s_factory
 from src.database.models import Comfort
 import src.database as db
 
@@ -51,16 +52,18 @@ arr: list[tuple[str, list[str]]] = [
 
 
 def add_comforts():
-    for tup in arr:
-        title = tup[0]
-        for c in tup[1]:
-            if c == 'МСГ':
-                db.write(Comfort(name=c, first=c, title=title))
-                continue
-            comforts = list(map(int, c.split('-')))
-            comfort = 0
-            if len(comforts) == 2:
-                comfort = Comfort(name=c, first=str(comforts[0]), second=comforts[1], title=title)
-            elif len(comforts) == 3:
-                comfort = Comfort(name=c, first=str(comforts[0]), second=comforts[1], third=comforts[2], title=title)
-            db.write(comfort)
+    with s_factory() as session:
+        for tup in arr:
+            title = tup[0]
+            for c in tup[1]:
+                if c == 'МСГ':
+                    session.add(Comfort(name=c, first=c, title=title))
+                    continue
+                comforts = list(map(int, c.split('-')))
+                comfort = 0
+                if len(comforts) == 2:
+                    comfort = Comfort(name=c, first=str(comforts[0]), second=comforts[1], title=title)
+                elif len(comforts) == 3:
+                    comfort = Comfort(name=c, first=str(comforts[0]), second=comforts[1], third=comforts[2], title=title)
+                session.add(comfort)
+        session.commit()

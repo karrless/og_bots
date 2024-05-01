@@ -38,15 +38,15 @@ async def neighbour_menu(message: Message):
             await bot.state_dispenser.set(message.peer_id, fsm.Dormitory.MENU)
             keyboard = get_dorm_menu_keyboard()
             neighbours: list[User] = user.room.users
+            text += f'{user.room.comfort_name}: {user.comfort.title}, комната {user.room.number}\n\n'
             if len(neighbours) > 1:
-                text += f'{user.room.comfort_name}: {user.comfort.title}, комната {user.room.number}\n\n'
                 text += 'Твои соседи:\n\n'
                 for neighbour in neighbours:
                     if neighbour.peer_id != user.peer_id:
                         text += f'{neighbour.name} {neighbour.surname} @{neighbour.screen_name}\n'
                 text += '\n'
             else:
-                text = 'Пока соседей нет.\n\n'
+                text += 'Пока соседей нет.\n\n'
             text += 'Возможно не все ещё зарегистрировались. Если появятся новые соседи - тебе придет сообщение'
         else:
             await bot.state_dispenser.set(message.peer_id, fsm.Dormitory.NEW)
