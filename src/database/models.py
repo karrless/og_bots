@@ -1,4 +1,5 @@
-from sqlalchemy import ForeignKey
+from sqlalchemy import ForeignKey, String
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 
 from src.database import Base
@@ -32,4 +33,13 @@ class Room(Base):
     number: Mapped[str] = mapped_column(unique=False)
     comfort_name: Mapped[str] = mapped_column(ForeignKey('comforts.name'), nullable=True)
     users = relationship('User', backref='room')
+
+
+class Answer(Base):
+    __tablename__ = 'answers'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    topic: Mapped[str] = mapped_column(unique=False, nullable=False)
+    subtopic: Mapped[str] = mapped_column(unique=True, nullable=True)
+    answer: Mapped[str] = mapped_column()
+    attachment = mapped_column(type_=ARRAY(String), nullable=True)
 

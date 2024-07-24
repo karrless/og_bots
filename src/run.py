@@ -16,7 +16,7 @@ if __name__ == '__main__':
 
     if DEBUG:
         # db.drop_all()
-        # db.create()
+        db.create()
         db.connect()
         # from src.dormitory.comforts import add_comforts
         # add_comforts()
