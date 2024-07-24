@@ -1,18 +1,16 @@
-"""
-Хэндлер для работы с комнатой в общежитии
-"""
 import random
 import re
 
 from vkbottle.bot import BotLabeler, rules, Message, MessageEvent
 from vkbottle import GroupEventType
 
-from src.bot import fsm, bot
+from src.bot import bot, fsm
 from src.bot.handlers.menu import neighbour_menu
-from src.bot.keyboards import get_first_comfort_number_keyboard, get_numbers_keyboard, RoomsKeyboard, \
-    get_main_menu_keyboard, get_dorm_menu_keyboard
+from src.bot.keyboards import get_numbers_keyboard, RoomsKeyboard, get_first_comfort_number_keyboard, \
+    get_main_menu_keyboard
 from src.bot.methods import get_user
-from src.database import s_factory, User, Room
+from src.database import s_factory
+from src.database.models import User, Comfort, Room
 from src.dormitory.methods import get_first_comfort_number, get_second_comfort_number, get_third_comfort_number, \
     get_comfort, get_room
 
@@ -20,59 +18,32 @@ bl = BotLabeler()
 bl.auto_rules = [rules.StateGroupRule(fsm.Dormitory), rules.PeerRule(from_chat=False)]
 
 
-@bl.message(text='Изменить комнату')
-async def change_room(message: Message):
-    """
-    Обработка кнопки "Изменить комнату" в меню общежития, получение комфортности пользователя
-    :param message: объект сообщения
-    """
-    with s_factory() as session:
-        user = get_user(session, message.peer_id)
-        if not user.room:
-            return await message.answer('Ты зачем балуешься!\n', keyboard=get_dorm_menu_keyboard(False))
-        comfort = user.comfort
-
-    return await get_room_number(message, comfort=comfort)
-
-
-@bl.message(text=('Указать жильё', 'Указать жилье', 'Изменить общежитие'))
-async def get_first_number(message: Message, _re: bool = False):
-    """
-    Обработка кнопок "Указать жильё" и "Изменить общежитие", запрос первого числа комфортности
-    :param message: объект сообщения
-    :param _re: первый ли раз запрашивается первое число или после неправильно введённого
-    :return:
-    """
+@bl.message(text=('Указать жильё', 'Указать жилье'))
+async def start_get_comfort(message: Message, _re: bool = False):
     await bot.state_dispenser.set(message.peer_id, fsm.Dormitory.FIRST_NUMBER)
-    text = 'Напиши первую цифру в комфортности или нажми соответствующую кнопку:\n'
+    text = 'Напиши первую цифру в комфортности или нажми соответсвующую кнопку:\n\nВ случае МСГ нажми МСГ'
     text = text if not _re else 'Вы ошиблись.\n' + text
     keyboard = get_first_comfort_number_keyboard()
     return await message.answer(text, keyboard=keyboard)
 
 
 @bl.message(state=fsm.Dormitory.FIRST_NUMBER)
-async def get_second_number(message: Message, _re: bool = False):
-    """
-    Обработка первого числа комфортности, запрос второго числа комфортности
-    :param message: объект сообщения
-    :param _re: первый ли раз запрашивается второе число или после неправильно введённого
-    """
+async def get_second_comfort(message: Message, _re: bool = False):
     state = await bot.state_dispenser.get(message.peer_id)
-    state_name = state.state.split(':')[1]
+    state = state.state.split(':')[1]
 
-    if state_name == 'first number':
+    if state == 'first number':
         first = message.text.upper()
         with s_factory() as session:
             if first not in get_first_comfort_number(session):
-                return await get_first_number(message, True)
+                return await start_get_comfort(message, True)
             if first == 'МСГ':
                 await bot.state_dispenser.set(message.peer_id, fsm.Dormitory.SELECT_ROOM,
-                                              first=first, second=None, third=None, page=0, from_='МСГ')
+                                              first=first, second=None, third=None, page=0)
                 return await get_room_number(message)
-
         await bot.state_dispenser.set(message.peer_id, fsm.Dormitory.SECOND_NUMBER, first=first)
     else:
-        first = state.payload['first']
+        first = message.state_peer.payload['first']
 
     with s_factory() as session:
         numbers = get_second_comfort_number(session, first)
@@ -84,34 +55,27 @@ async def get_second_number(message: Message, _re: bool = False):
 
 
 @bl.message(state=fsm.Dormitory.SECOND_NUMBER)
-async def get_third_number(message: Message, _re: bool = False, back: bool = False):
-    """
-    Обработка второго числа комфортности, запрос третьего числа комфортности
-    :param message: объект сообщения
-    :param _re: первый ли раз запрашивается третье число или после неправильно введённого
-    :param back: True если сообщение пришло с выбора комнаты, False, если со второго числа
-    """
-    if message.text.upper() == 'НАЗАД' and not back:
-        return await get_first_number(message)
+async def get_last_comfort(message: Message, _re: bool = False):
     state = await bot.state_dispenser.get(message.peer_id)
-    first = state.payload['first']
-    state_name = state.state.split(':')[1]
-    if state_name == 'second number':
+    state = state.state.split(':')[1]
+    first = message.state_peer.payload['first']
+
+    if state == 'second number':
         second = message.text.upper()
+        if second == 'НАЗАД':
+            return await start_get_comfort(message)
         with s_factory() as session:
             if second not in list(map(str, get_second_comfort_number(session, first))):
-                return await get_second_number(message, True)
-        await bot.state_dispenser.set(message.peer_id, fsm.Dormitory.LAST_NUMBER,
-                                      first=first, second=second)
+                return await get_second_comfort(message, True)
+        await bot.state_dispenser.set(message.peer_id, fsm.Dormitory.LAST_NUMBER, first=first, second=second)
     else:
-        second = state.payload['second']
+        second = message.state_peer.payload['second']
 
     with s_factory() as session:
         numbers = get_third_comfort_number(session, first, second)
-
     if not numbers[0]:
         await bot.state_dispenser.set(message.peer_id, fsm.Dormitory.SELECT_ROOM,
-                                      first=first, second=int(second), third=None, page=0, from_='second')
+                                      first=first, second=second, third=None, page=0)
         return await get_room_number(message)
 
     keyboard = get_numbers_keyboard(numbers)
@@ -121,57 +85,39 @@ async def get_third_number(message: Message, _re: bool = False, back: bool = Fal
 
 
 @bl.message(state=fsm.Dormitory.LAST_NUMBER)
-async def get_room_number(message: Message, _re: bool = False, back: bool = False, comfort=None):
-    """
-    Обработка последнего числа комфортности, запрос номера комнаты
-    :param message: объект сообщения
-    :param _re: первый ли раз запрашивается второе число или после неправильно введённого
-    :param back: не используется
-    :param comfort: комфортность пользователя в случае изменения номера комнаты
-    """
-    if not comfort:
-        state = await bot.state_dispenser.get(message.peer_id)
-        first = state.payload['first']
-        second = state.payload.get('second')
-        state_name = state.state.split(':')[1]
-        if message.text.upper() == 'НАЗАД' and not back:
-            await bot.state_dispenser.set(message.peer_id, fsm.Dormitory.SECOND_NUMBER, first=first)
-            return await get_second_number(message)
+async def get_room_number(message: Message, _re: bool = False):
+    # TODO: продумать как потом изменять все это говно
+    state = await bot.state_dispenser.get(message.peer_id)
+    state = state.state.split(':')[1]
+    first = message.state_peer.payload['first']
+    second = message.state_peer.payload['second']
 
-        if state_name == 'last number':
-            third = message.text.upper()
-
-            with s_factory() as session:
-                if third not in list(map(str, get_third_comfort_number(session, first, second))):
-                    return await get_third_number(message, True)
-            page = 0
-        else:
-            page = state.payload['page']
-            third = state.payload['third']
-        from_ = 'third' if not state.payload.get('from_') else state.payload.get('from_')
-    else:
-        first = comfort.first
-        second = comfort.second
-        third = comfort.third
+    if state == 'last number':
+        third = message.text.upper()
+        if third == 'НАЗАД':
+            return await get_second_comfort(message)
+        with s_factory() as session:
+            if third not in list(map(str, get_third_comfort_number(session, first, second))):
+                return await get_last_comfort(message, True)
         page = 0
-        from_ = 'menu'
+    else:
+        page = message.state_peer.payload['page']
+        third = message.state_peer.payload['third']
 
     await bot.state_dispenser.set(message.peer_id, fsm.Dormitory.SELECT_ROOM,
-                                  first=first, second=second, third=third, page=page, from_=from_)
-
+                                  first=first, second=second, third=third, page=page)
     with s_factory() as session:
         user: User = get_user(session, message.peer_id)
-        comfort = comfort if comfort else get_comfort(session, first, second, third)
+        comfort: Comfort = get_comfort(session, first, second, third)
         user.comfort = comfort
         session.add(user)
         session.commit()
-        rooms = []
-        for x in comfort.rooms:
-            if x.id != user.room_id:
-                rooms.append(x)
+        rooms = [x.number for x in comfort.rooms]
 
     keyboard = RoomsKeyboard(rooms)
-    text = (f'Теперь напиши свой номер комнаты {"или выбери из предложенных" if rooms else ""}\n\n'
+
+    text = (f'Отлично, твоя комфортность сохранена!\n'
+            f'Теперь напиши номер своей комнаты\n\n'
             f'Если у тебя буква в номере комнаты, используй латиницу, т.е. "a" или "b".')
     text = text if not _re else 'Вы ошиблись.\n' + text
     await message.answer(text, keyboard=keyboard.get_keyboard(page))
@@ -179,28 +125,19 @@ async def get_room_number(message: Message, _re: bool = False, back: bool = Fals
 
 @bl.message(state=fsm.Dormitory.SELECT_ROOM)
 async def set_room(message: Message):
-    state = await bot.state_dispenser.get(message.peer_id)
-    first = state.payload['first']
-    second = state.payload['second']
-    third = state.payload['third']
-    from_ = state.payload['from_']
-    state_name = state.state.split(':')[1]
+    second = message.state_peer.payload['second']
+    third = message.state_peer.payload['third']
 
     room_number = message.text.upper()
     regexp = r'\d{1,5}(-[A-B])?'
     if room_number == 'НАЗАД':
-        if from_ == 'МСГ':
-            return await get_first_number(message)
-        elif from_ == 'second':
-            await bot.state_dispenser.set(message.peer_id, fsm.Dormitory.SECOND_NUMBER, first=first)
-            return await get_second_number(message)
-        elif from_ == 'third':
-            await bot.state_dispenser.set(message.peer_id, fsm.Dormitory.LAST_NUMBER, first=first, second=second)
-            return await get_third_number(message, back=True)
-        elif from_ == 'menu':
-            return await neighbour_menu(message)
+        if not third:
+            return await start_get_comfort(message)
+        elif not second:
+            return await get_second_comfort(message)
+        return await get_last_comfort(message)
     if not re.match(regexp, room_number):
-        return await get_room_number(message, True)
+        return await get_last_comfort(message, True)
 
     with s_factory() as session:
         user: User = get_user(session, message.peer_id)
@@ -208,7 +145,6 @@ async def set_room(message: Message):
         pre_room = user.room
 
         input_room = get_room(session, comfort, room_number)
-
         if not input_room:
             new_room = Room(comfort=comfort, number=room_number)
             session.add(new_room)
@@ -218,7 +154,7 @@ async def set_room(message: Message):
         user.room = new_room
         session.add(user)
 
-        if pre_room and pre_room != new_room:
+        if pre_room:
             if len(pre_room.users) <= 1:
                 session.delete(pre_room)
         session.commit()
@@ -248,7 +184,6 @@ async def change_rooms_page(event: MessageEvent):
     second = state.payload['second']
     third = state.payload['third']
     page = state.payload['page']
-    from_ = state.payload['from_']
 
     cmd = event.payload['rooms_page']
     with s_factory() as session:
@@ -263,6 +198,6 @@ async def change_rooms_page(event: MessageEvent):
         page = page + 1 if page < keyboard.pages - 1 else 0
 
     await bot.state_dispenser.set(event.peer_id, fsm.Dormitory.SELECT_ROOM,
-                                  first=first, second=second, third=third, page=page, from_=from_)
+                                  first=first, second=second, third=third, page=page)
     # await bot.api.messages.send(user_id=event.peer_id, keyboard=keyboard.get_keyboard(page), random_id=42)
     await event.edit_message(keyboard=keyboard.get_keyboard(page))
