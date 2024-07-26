@@ -5,26 +5,13 @@ load_dotenv()
 
 
 if __name__ == '__main__':
-    import os
     import src.database as db
     from src.bot import bot
     from loguru import logger
 
     logger.remove()
-
-    DEBUG = bool(os.getenv('DEBUG'))
-
-    if DEBUG:
-        # db.drop_all()
-        db.create()
-        db.connect()
-        # from src.dormitory.comforts import add_comforts
-        # add_comforts()
-        open('log.log', 'w').close()
-        logger.add('log.log', level="DEBUG")
-    else:
-        db.connect()
-        open('log.log', 'w').close()
-        logger.add('log.log', level="INFO")
+    logger.add('log/{time}.log', level="INFO", rotation='12:00')
+    db.create()
+    db.connect()
     bot.run_forever()
 
