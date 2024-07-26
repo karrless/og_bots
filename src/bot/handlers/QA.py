@@ -11,6 +11,7 @@ from src.bot.handlers.menu import faq_keys
 from src.bot.keyboards import get_topics_keyboard, get_back_keyboard
 from src.bot.keyboards.QA import get_subtopics_keyboard, get_answer_keyboard
 from src.database import s_factory, Answer
+from .menu import bl
 
 bl_chat = BotLabeler()
 bl_chat.auto_rules = [rules.PeerRule(from_chat=True)]
