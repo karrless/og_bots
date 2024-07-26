@@ -20,3 +20,13 @@ class Dormitory(BaseStateGroup):
     GET_NEW_ROOM = 'get new room'
 
     SET_NEW_ROOM = 'set new room'
+
+
+class QA(BaseStateGroup):
+    MENU = 'menu'
+
+    TOPIC = 'topic'
+
+    ANSWER = 'answer'
+
+    QUESTION = 'question'

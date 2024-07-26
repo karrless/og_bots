@@ -1,9 +1,11 @@
+import os
+from dotenv import set_key, find_dotenv
 
 from vkbottle.bot import BotLabeler, rules, Message, MessageEvent
 from vkbottle import GroupEventType
 
 from src.bot import bot, fsm
-from src.bot.keyboards import get_main_menu_keyboard, get_dorm_menu_keyboard
+from src.bot.keyboards import get_main_menu_keyboard, get_dorm_menu_keyboard, get_topics_keyboard
 from src.bot.methods import get_user
 from src.database import s_factory
 from src.database.models import User
@@ -13,9 +15,12 @@ bl = BotLabeler()
 bl.auto_rules = [rules.PeerRule(from_chat=False)]
 
 
-@bl.message(text=('Начать', 'Start', 'Обратно в меню'))
+@bl.message(text=('Начать', 'Start', 'Обратно в меню', 'начать'))
 async def start_message(message: Message):
-    await bot.state_dispenser.set(message.peer_id, fsm.Menu.MAIN)
+    if os.getenv('IS_DORM'):
+        await bot.state_dispenser.set(message.peer_id, fsm.Menu.MAIN)
+    else:
+        await bot.state_dispenser.set(message.peer_id, fsm.QA.MENU)
     with s_factory() as session:
         if not get_user(session, message.peer_id):
             user = (await bot.api.users.get(message.peer_id, fields=['screen_name']))[0]
@@ -26,11 +31,15 @@ async def start_message(message: Message):
                      surname=user.last_name)
             )
             session.commit()
-    return await message.answer(f'Привет, чмоня!', keyboard=get_main_menu_keyboard())
+    admin = str(message.peer_id) in [os.getenv('POLLY_ID'), os.getenv('KARRLESS_ID')]
+    return await message.answer(f'Привет, чмоня!', keyboard=get_main_menu_keyboard(admin))
 
 
 @bl.message(text='Найти соседей')
 async def neighbour_menu(message: Message):
+    if not os.getenv('IS_DORM'):
+        await bot.state_dispenser.set(message.peer_id, fsm.QA.MENU)
+        return await message.answer(f'Сюда пока нельзя!', keyboard=get_main_menu_keyboard())
     text = ''
     with s_factory() as session:
         user: User = get_user(session, message.peer_id)
@@ -54,6 +63,39 @@ async def neighbour_menu(message: Message):
             text = ('Я пока не знаю, какое у тебя общежитие.\n\n'
                     'Напиши "Указать жильё" или нажми соответсвующую кнопку.')
     return await message.answer(text, keyboard=keyboard)
+
+
+@bl.message(text=('Вопросы и ответы', 'Вопросы и ответы'))
+async def faq_keys(message: Message):
+    await bot.state_dispenser.set(message.peer_id, fsm.QA.MENU)
+    keyboard = get_topics_keyboard()
+    text = 'Выбери тему, которая тебе интересна:\n\nЕсли клавиатуры нет, отправь "Начать" или "Вопросы и ответы"'
+    return await message.answer(message=text,
+                                keyboard=keyboard)
+
+
+@bl.message(text=('Включить-поиск_соседей:)', 'Выключить-поиск_соседей:)'))
+async def dorm_on(message: Message):
+    if os.environ['IS_DORM']:
+        os.environ['IS_DORM'] = ''
+        set_key(os.path.abspath('.env'), 'IS_DORM', '')
+    else:
+        os.environ['IS_DORM'] = '1'
+        set_key(os.path.abspath('.env'), 'IS_DORM', '1')
+    return await message.answer(message=f'Общаги {"включена" if os.environ["IS_DORM"] else "выключена"}',
+                                keyboard=get_main_menu_keyboard(True))
+
+
+@bl.message(text=('Включить-перессылку_в-чат:)', 'Выключить-перессылку_в-чат:)'))
+async def dorm_on(message: Message):
+    if os.environ['MODER_CHAT']:
+        os.environ['MODER_CHAT'] = ''
+        set_key(os.path.abspath('.env'), 'MODER_CHAT', '')
+    else:
+        os.environ['MODER_CHAT'] = '1'
+        set_key(os.path.abspath('.env'), 'MODER_CHAT', '1')
+    return await message.answer(message=f'Перессылка в чат {"включена" if os.environ["MODER_CHAT"] else "выключена"}',
+                                keyboard=get_main_menu_keyboard(True))
 
 
 @bl.raw_event(GroupEventType.MESSAGE_EVENT,

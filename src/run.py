@@ -12,7 +12,7 @@ if __name__ == '__main__':
 
     logger.remove()
 
-    DEBUG = int(os.getenv('DEBUG'))
+    DEBUG = bool(os.getenv('DEBUG'))
 
     if DEBUG:
         # db.drop_all()
@@ -20,9 +20,11 @@ if __name__ == '__main__':
         db.connect()
         # from src.dormitory.comforts import add_comforts
         # add_comforts()
+        open('log.log', 'w').close()
         logger.add('log.log', level="DEBUG")
     else:
         db.connect()
+        open('log.log', 'w').close()
         logger.add('log.log', level="INFO")
     bot.run_forever()
 

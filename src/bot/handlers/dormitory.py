@@ -21,7 +21,8 @@ bl.auto_rules = [rules.StateGroupRule(fsm.Dormitory), rules.PeerRule(from_chat=F
 @bl.message(text=('Указать жильё', 'Указать жилье'))
 async def start_get_comfort(message: Message, _re: bool = False):
     await bot.state_dispenser.set(message.peer_id, fsm.Dormitory.FIRST_NUMBER)
-    text = 'Напиши первую цифру в комфортности или нажми соответсвующую кнопку:\n\nВ случае МСГ нажми МСГ'
+    text = ('Напиши первую цифру в комфортности или нажми соответсвующую кнопку:\n\n'
+            'В случае МСГ или МСГ-12 нажми МСГ или МСГ-12 соответственно')
     text = text if not _re else 'Вы ошиблись.\n' + text
     keyboard = get_first_comfort_number_keyboard()
     return await message.answer(text, keyboard=keyboard)
@@ -37,7 +38,7 @@ async def get_second_comfort(message: Message, _re: bool = False):
         with s_factory() as session:
             if first not in get_first_comfort_number(session):
                 return await start_get_comfort(message, True)
-            if first == 'МСГ':
+            if first in ['МСГ', 'МСГ-12']:
                 await bot.state_dispenser.set(message.peer_id, fsm.Dormitory.SELECT_ROOM,
                                               first=first, second=None, third=None, page=0)
                 return await get_room_number(message)
