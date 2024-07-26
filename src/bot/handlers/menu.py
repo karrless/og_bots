@@ -1,8 +1,8 @@
 import os
-from dotenv import set_key, find_dotenv
 
-from vkbottle.bot import BotLabeler, rules, Message, MessageEvent
+from dotenv import set_key
 from vkbottle import GroupEventType
+from vkbottle.bot import BotLabeler, rules, Message, MessageEvent
 
 from src.bot import bot, fsm
 from src.bot.keyboards import get_main_menu_keyboard, get_dorm_menu_keyboard, get_topics_keyboard
@@ -10,12 +10,14 @@ from src.bot.methods import get_user
 from src.database import s_factory
 from src.database.models import User
 
-
 bl = BotLabeler()
 bl.auto_rules = [rules.PeerRule(from_chat=False)]
+bl_help = BotLabeler()
+bl_help.auto_rules = [rules.PeerRule(from_chat=False)]
 
 
-@bl.message(text=('Начать', 'Start', 'Обратно в меню', 'начать'))
+@bl.message(text=('Начать', 'Start', 'Обратно в меню'))
+@bl_help.message()
 async def start_message(message: Message):
     if os.getenv('IS_DORM'):
         await bot.state_dispenser.set(message.peer_id, fsm.Menu.MAIN)
@@ -32,7 +34,9 @@ async def start_message(message: Message):
             )
             session.commit()
     admin = str(message.peer_id) in [os.getenv('POLLY_ID'), os.getenv('KARRLESS_ID')]
-    return await message.answer(f'Привет, чмоня!', keyboard=get_main_menu_keyboard(admin))
+    text = (f'Окей, Горный! Я могу тебе помочь ответить на интересующие тебя вопросы'
+            f'{"." if not os.getenv("IS_DORM") else ", а также найти твоих соседей по общежитию."}')
+    return await message.answer(text, keyboard=get_main_menu_keyboard(admin))
 
 
 @bl.message(text='Найти соседей')
@@ -103,6 +107,7 @@ async def dorm_on(message: Message):
               rules.PayloadRule({'cmd': 'joke'}))
 async def joke_button(event: MessageEvent):
     await event.show_snackbar('Ты зачем это нажал? Не нажимай больше!')
+
 
 # @bl.message(text='test')
 # async def test(message: Message):
