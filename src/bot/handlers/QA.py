@@ -8,10 +8,9 @@ from vkbottle.bot import BotLabeler, rules, Message
 from src.QA.methods import get_subtopics, get_topics, get_answer
 from src.bot import bot, fsm
 from src.bot.handlers.menu import faq_keys
-from src.bot.keyboards import get_main_menu_keyboard, get_topics_keyboard, get_back_keyboard
+from src.bot.keyboards import get_topics_keyboard, get_back_keyboard
 from src.bot.keyboards.QA import get_subtopics_keyboard, get_answer_keyboard
 from src.database import s_factory, Answer
-from .menu import bl
 
 bl_chat = BotLabeler()
 bl_chat.auto_rules = [rules.PeerRule(from_chat=True)]

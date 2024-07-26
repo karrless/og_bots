@@ -1,6 +1,5 @@
 from src.database import s_factory
 from src.database.models import Comfort
-import src.database as db
 
 arr: list[tuple[str, list[str]]] = [
     ('Общежитие № 1',
@@ -64,6 +63,7 @@ def add_comforts():
                 if len(comforts) == 2:
                     comfort = Comfort(name=c, first=str(comforts[0]), second=comforts[1], title=title)
                 elif len(comforts) == 3:
-                    comfort = Comfort(name=c, first=str(comforts[0]), second=comforts[1], third=comforts[2], title=title)
+                    comfort = Comfort(name=c, first=str(comforts[0]), second=comforts[1], third=comforts[2],
+                                      title=title)
                 session.add(comfort)
         session.commit()

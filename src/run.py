@@ -14,4 +14,3 @@ if __name__ == '__main__':
     db.create()
     db.connect()
     bot.run_forever()
-

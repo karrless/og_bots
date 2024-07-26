@@ -5,7 +5,7 @@ from vkbottle import Keyboard, KeyboardButtonColor, Text
 from src.bot.keyboards.QA import get_topics_keyboard
 
 
-def get_main_menu_keyboard(admin:bool = False):
+def get_main_menu_keyboard(admin: bool = False):
     is_dorm = bool(os.getenv('IS_DORM'))
     keyboard = Keyboard(one_time=False, inline=False)
     if is_dorm:
@@ -23,4 +23,3 @@ def get_main_menu_keyboard(admin:bool = False):
         return keyboard.get_json()
     else:
         return get_topics_keyboard(is_dorm, admin)
-

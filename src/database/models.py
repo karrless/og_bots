@@ -42,4 +42,3 @@ class Answer(Base):
     subtopic: Mapped[str] = mapped_column(unique=True, nullable=True)
     answer: Mapped[str] = mapped_column()
     attachment = mapped_column(type_=ARRAY(String), nullable=True)
-

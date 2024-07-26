@@ -1,9 +1,9 @@
 import os
 
-from vkbottle import Keyboard, KeyboardButtonColor, Text, Callback
+from vkbottle import Keyboard, KeyboardButtonColor, Text
 
-from src.database import s_factory
 from src.QA.methods import get_topics
+from src.database import s_factory
 
 
 def get_topics_keyboard(is_dorm=True, admin=False):
