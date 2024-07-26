@@ -10,7 +10,7 @@ if __name__ == '__main__':
     from loguru import logger
 
     logger.remove()
-    logger.add('log/{time}.log', level="INFO", rotation='12:00')
+    logger.add('log/{time:DD_MM_YYYY}.log', level="INFO", rotation='12:00')
     db.create()
     db.connect()
     bot.run_forever()
