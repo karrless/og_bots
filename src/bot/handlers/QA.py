@@ -96,7 +96,7 @@ async def write_question(message: Message):
     requests.post('https://api.vk.com/method/messages.sendReaction',
                   data={'peer_id': message.peer_id,
                         'cmid': message.conversation_message_id,
-                        'reaction_id': 10,
+                        'reaction_id': 39,
                         'access_token': os.getenv('VK_API1'),
                         'v': '5.199'})
 
