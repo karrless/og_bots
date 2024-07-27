@@ -89,10 +89,11 @@ async def write_question(message: Message):
     state: StatePeer = await bot.state_dispenser.get(message.peer_id)
     topic = state.payload.get('topic')
     user = (await bot.api.users.get(message.peer_id, fields=['screen_name']))[0]
-    text = (f'Поступил новый вопрос от @{user.screen_name} ({user.first_name} {user.last_name}) по теме "{topic}":\n\n'
-            f'{message.text}')
+    text = f'Поступил новый вопрос от @{user.screen_name} ({user.first_name} {user.last_name}) по теме "{topic}":'
     if os.getenv('MODER_CHAT'):
-        await bot.api.messages.send(peer_id=os.getenv('MODER_CHAT_ID'), message=text, attachment=message.attachments,
+        await bot.api.messages.send(peer_id=os.getenv('MODER_CHAT_ID'), message=text,
+                                    forward='{'+f'"peer_id":{message.peer_id},'
+                                                f'"conversation_message_ids":[{message.conversation_message_id}]'+'}',
                                     random_id=random.randint(1, message.peer_id))
     requests.post('https://api.vk.com/method/messages.sendReaction',
                   data={'peer_id': message.peer_id,
