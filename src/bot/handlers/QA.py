@@ -1,22 +1,34 @@
 import os
 import random
+from typing import Optional
 
-import requests
-from vkbottle import StatePeer
-from vkbottle.bot import BotLabeler, rules, Message
+from sqlalchemy import desc
+# import requests
+from vkbottle import StatePeer, EMPTY_KEYBOARD
+from vkbottle.bot import BotLabeler, rules, Message, MessageEvent
+from vkbottle_types.events import GroupEventType
 
 from src.QA.methods import get_subtopics, get_topics, get_answer
 from src.bot import bot, fsm
-from src.bot.handlers.menu import faq_keys
-from src.bot.keyboards import get_topics_keyboard, get_back_keyboard
-from src.bot.keyboards.QA import get_subtopics_keyboard, get_answer_keyboard
+from src.bot.handlers.menu import faq_keys, start_message
+from src.bot.keyboards import get_topics_keyboard, get_back_keyboard, get_main_menu_keyboard
+from src.bot.keyboards.QA import get_subtopics_keyboard, get_answer_keyboard, get_question_keyboard
 from src.database import s_factory, Answer
-from .menu import bl
+from src.database.models import Question
+
+# from .menu import bl
+
+bl_moder = BotLabeler()
+bl_moder.auto_rules = [rules.PeerRule(from_chat=True)]
+bl_moder.vbml_ignore_case = True
+
+bl_QA = BotLabeler()
+bl_QA.vbml_ignore_case = True
+bl_QA.auto_rules = [rules.PeerRule(from_chat=False), rules.StateGroupRule(fsm.QA)]
 
 bl_chat = BotLabeler()
-bl_chat.auto_rules = [rules.PeerRule(from_chat=True)]
-bl_QA = BotLabeler()
-bl_QA.auto_rules = [rules.PeerRule(from_chat=False), rules.StateGroupRule(fsm.QA)]
+bl_chat.auto_rules = [rules.PeerRule(from_chat=False), rules.StateRule(fsm.QA.CHAT)]
+bl_chat.vbml_ignore_case = True
 
 
 @bl_QA.message(state=fsm.QA.MENU)
@@ -89,20 +101,120 @@ async def write_question(message: Message):
     state: StatePeer = await bot.state_dispenser.get(message.peer_id)
     topic = state.payload.get('topic')
     user = (await bot.api.users.get(message.peer_id, fields=['screen_name']))[0]
-    text = f'Поступил новый вопрос от @{user.screen_name} ({user.first_name} {user.last_name}) по теме "{topic}":'
+    with s_factory() as session:
+        session.add(Question(topic=topic,
+                             peer_id=message.peer_id,
+                             name=user.first_name,
+                             surname=user.last_name,
+                             question=message.text))
+        session.commit()
+        question = session.query(Question).where(Question.topic == topic,
+                                                 Question.peer_id == message.peer_id,
+                                                 Question.close == False).order_by(desc(Question.id)).first()
+
+    text = f'Новый вопрос #{question.id} от @{user.screen_name} ({user.first_name} {user.last_name}) по теме "{topic}":'
+
     if os.getenv('MODER_CHAT'):
         await bot.api.messages.send(peer_id=os.getenv('MODER_CHAT_ID'), message=text,
-                                    forward='{'+f'"peer_id":{message.peer_id},'
-                                                f'"conversation_message_ids":[{message.conversation_message_id}]'+'}',
-                                    random_id=random.randint(1, message.peer_id))
-    requests.post('https://api.vk.com/method/messages.sendReaction',
-                  data={'peer_id': message.peer_id,
-                        'cmid': message.conversation_message_id,
-                        'reaction_id': 10,
-                        'access_token': os.getenv('VK_API1'),
-                        'v': '5.199'})
+                                    forward='{' + f'"peer_id":{message.peer_id},'
+                                                  f'"conversation_message_ids":'
+                                                  f'[{message.conversation_message_id}]' + '}',
+                                    random_id=random.randint(1, message.peer_id),
+                                    keyboard=get_question_keyboard(question.id))
+
+    await bot.state_dispenser.set(message.peer_id, fsm.QA.CHAT, question_id=question.id)
+    text = 'Мы приняли твой вопрос и в скором времени ответим!'
+    await message.answer(text, keyboard=get_back_keyboard(back=False))
+    text = ('Активирован режим чата.\n\n'
+            'В этом режиме ты сможешь вести диалог с модератором.\n'
+            'Работают только команды "Начать" и "Обратно в меню", которые отключат этот режим и вопрос будет закрыт')
+    await message.answer(text, keyboard=get_back_keyboard(back=False))
+    # requests.post('https://api.vk.com/method/messages.sendReaction',
+    #               data={'peer_id': message.peer_id,
+    #                     'cmid': message.conversation_message_id,
+    #                     'reaction_id': 10,
+    #                     'access_token': os.getenv('VK_API1'),
+    #                     'v': '5.199'})
 
 
-@bl_chat.message(command='test')
+@bl_moder.message(command='test')
 async def test(message: Message):
     return await message.answer(message=message.peer_id)
+
+
+@bl_moder.message(rules.VBMLRule('Закрыть <question_id>'))
+@bl_moder.message(rules.VBMLRule('закрыть <question_id>'))
+async def close_question(message: Message, question_id, mod_msg=True):
+    with s_factory() as session:
+        if not str(question_id).isdigit():
+            return await message.answer(f'{question_id} не число')
+        question: Optional[Question] = session.query(Question).where(Question.id == question_id).one()
+        text = f'Вопрос #{question.id} закрыт!'
+        if question:
+            if question.close:
+                return await message.answer(f'Вопрос #{question.id} уже закрыт!')
+            question.close = True
+            session.add(question)
+            session.commit()
+            await bot.api.messages.send(peer_id=question.peer_id,
+                                        message=f'Ваш вопрос был закрыт модератором. Режим чата деактивирован.',
+                                        random_id=random.randint(1, message.peer_id),
+                                        keyboard=get_main_menu_keyboard())
+            if os.getenv('IS_DORM'):
+                await bot.state_dispenser.set(question.peer_id, fsm.Menu.MAIN)
+            else:
+                await bot.state_dispenser.set(question.peer_id, fsm.QA.MENU)
+        else:
+            text = f'Вопроса с номером #{question_id} не существует'
+        if mod_msg:
+            return await message.answer(text)
+
+
+@bl_moder.raw_event(GroupEventType.MESSAGE_EVENT,
+                    MessageEvent)
+async def joke_button(event: MessageEvent):
+    message = await bot.api.messages.get_by_conversation_message_id(event.peer_id,
+                                                                    event.conversation_message_id)
+    message = message.items[0]
+    cmd = event.payload.get('cmd')
+    question_id = event.payload.get('question_id')
+    if cmd == 'close':
+        text = f'Вопрос #{question_id} закрыт'
+        text1 = text + ':'
+        keyboard = EMPTY_KEYBOARD
+    else:
+        mod = (await bot.api.users.get(event.object.user_id, fields=['screen_name', 'sex']))[0]
+        text = (f'Вопрос #{question_id} {"взял" if mod.sex == 2 else "взяла"} '
+                f'@{mod.screen_name} ({mod.first_name} {mod.last_name})')
+        text1 = text + ":"
+        keyboard = get_question_keyboard(question_id)
+    await bot.api.messages.edit(event.object.peer_id,
+                                keep_forward_messages=1,
+                                conversation_message_id=event.conversation_message_id,
+                                message=text1,
+                                keyboard=keyboard, random_id=random.randint(1, event.peer_id)
+                                )
+    await bot.api.messages.send(peer_id=event.peer_id, reply_to=message.id,
+                                message=text,
+                                random_id=random.randint(1, event.peer_id))
+    if cmd == 'close':
+        return await close_question(message, question_id, mod_msg=False)
+
+
+
+@bl_chat.message()
+async def chat_off(message: Message):
+    if message.text.lower() not in ['начать', 'start', 'обратно в меню']:
+        return
+    state = await bot.state_dispenser.get(message.peer_id)
+    with s_factory() as session:
+        question = session.query(Question).where(Question.id == state.payload.get('question_id')).one()
+        question.close = True
+        session.add(question)
+        session.commit()
+        if os.getenv('MODER_CHAT'):
+            await bot.api.messages.send(peer_id=os.getenv('MODER_CHAT_ID'),
+                                        message=f'Вопрос #{question.id} закрыт!',
+                                        random_id=random.randint(1, message.peer_id))
+        await message.answer('Ваш вопрос закрыт. Режим чата деактивирован.')
+    return await start_message(message)

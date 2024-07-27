@@ -42,3 +42,14 @@ class Answer(Base):
     subtopic: Mapped[str] = mapped_column(unique=True, nullable=True)
     answer: Mapped[str] = mapped_column()
     attachment = mapped_column(type_=ARRAY(String), nullable=True)
+
+
+class Question(Base):
+    __tablename__ = 'questions'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    topic: Mapped[str] = mapped_column(unique=False, nullable=False)
+    peer_id: Mapped[int] = mapped_column(nullable=False)
+    name: Mapped[str] = mapped_column(nullable=False)
+    surname: Mapped[str] = mapped_column(nullable=False)
+    question: Mapped[str] = mapped_column(nullable=True)
+    close: Mapped[bool] = mapped_column(default=False)

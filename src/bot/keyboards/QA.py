@@ -1,6 +1,6 @@
 import os
 
-from vkbottle import Keyboard, KeyboardButtonColor, Text
+from vkbottle import Keyboard, KeyboardButtonColor, Text, Callback
 
 from src.QA.methods import get_topics
 from src.database import s_factory
@@ -53,4 +53,17 @@ def get_answer_keyboard():
     keyboard.row()
     keyboard.add(Text('Назад'), color=KeyboardButtonColor.SECONDARY)
     keyboard.add(Text('Обратно в меню'), color=KeyboardButtonColor.SECONDARY)
+    return keyboard.get_json()
+
+
+def get_question_keyboard(question_id):
+    keyboard = Keyboard(inline=True)
+    keyboard.add(Callback('Взять вопрос',
+                          {'cmd': 'take',
+                           'question_id': question_id}),
+                 color=KeyboardButtonColor.PRIMARY)
+    keyboard.add(Callback('Закрыть вопрос',
+                          {'cmd': 'close',
+                           'question_id': question_id}),
+                 color=KeyboardButtonColor.POSITIVE)
     return keyboard.get_json()

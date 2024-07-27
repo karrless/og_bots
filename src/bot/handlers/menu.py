@@ -1,17 +1,20 @@
 import os
+import random
 
 from dotenv import set_key
 from vkbottle import GroupEventType
 from vkbottle.bot import BotLabeler, rules, Message, MessageEvent
 
+
 from src.bot import bot, fsm
 from src.bot.keyboards import get_main_menu_keyboard, get_dorm_menu_keyboard, get_topics_keyboard
 from src.bot.methods import get_user
 from src.database import s_factory
-from src.database.models import User
+from src.database.models import User, Question
 
 bl = BotLabeler()
 bl.auto_rules = [rules.PeerRule(from_chat=False)]
+bl.vbml_ignore_case = True
 bl_help = BotLabeler()
 bl_help.auto_rules = [rules.PeerRule(from_chat=False)]
 
@@ -34,8 +37,10 @@ async def start_message(message: Message):
             )
             session.commit()
     admin = str(message.peer_id) in [os.getenv('POLLY_ID'), os.getenv('KARRLESS_ID')]
-    text = (f'Окей, Горный! Я могу тебе помочь ответить на интересующие тебя вопросы'
-            f'{"." if not os.getenv("IS_DORM") else ", а также найти твоих соседей по общежитию."}')
+    text = (f'Окей, Горный!\n'
+            f'Я могу тебе помочь ответить на интересующие тебя вопросы'
+            f'{"." if not os.getenv("IS_DORM") else ", а также найти твоих соседей по общежитию."}\n\n'
+            f'Выберите категорию вопроса из списка ниже. Если не нашли нужный ответ, нажмите "Свой вопрос".')
     return await message.answer(text, keyboard=get_main_menu_keyboard(admin))
 
 
