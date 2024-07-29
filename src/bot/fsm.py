@@ -32,3 +32,5 @@ class QA(BaseStateGroup):
     QUESTION = 'question'
 
     CHAT = 'chat'
+
+    QUIT = 'quit'

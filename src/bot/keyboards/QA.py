@@ -67,3 +67,11 @@ def get_question_keyboard(question_id):
                            'question_id': question_id}),
                  color=KeyboardButtonColor.POSITIVE)
     return keyboard.get_json()
+
+
+def get_quit_keyboard():
+    keyboard = Keyboard()
+    keyboard.add(Text('Да, я хочу закрыть вопрос'), color=KeyboardButtonColor.NEGATIVE)
+    keyboard.row()
+    keyboard.add(Text('Нет'), color=KeyboardButtonColor.SECONDARY)
+    return keyboard.get_json()

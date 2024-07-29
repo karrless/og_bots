@@ -12,7 +12,7 @@ from src.QA.methods import get_subtopics, get_topics, get_answer
 from src.bot import bot, fsm
 from src.bot.handlers.menu import faq_keys, start_message
 from src.bot.keyboards import get_topics_keyboard, get_back_keyboard, get_main_menu_keyboard
-from src.bot.keyboards.QA import get_subtopics_keyboard, get_answer_keyboard, get_question_keyboard
+from src.bot.keyboards.QA import get_subtopics_keyboard, get_answer_keyboard, get_question_keyboard, get_quit_keyboard
 from src.database import s_factory, Answer
 from src.database.models import Question
 
@@ -26,9 +26,6 @@ bl_QA = BotLabeler()
 bl_QA.vbml_ignore_case = True
 bl_QA.auto_rules = [rules.PeerRule(from_chat=False), rules.StateGroupRule(fsm.QA)]
 
-bl_chat = BotLabeler()
-bl_chat.auto_rules = [rules.PeerRule(from_chat=False), rules.StateRule(fsm.QA.CHAT)]
-bl_chat.vbml_ignore_case = True
 
 
 @bl_QA.message(state=fsm.QA.MENU)
@@ -125,7 +122,7 @@ async def write_question(message: Message):
     await bot.state_dispenser.set(message.peer_id, fsm.QA.CHAT, question_id=question.id)
     text = 'Мы приняли твой вопрос и в скором времени ответим!'
     await message.answer(text, keyboard=get_back_keyboard(back=False))
-    text = ('Активирован режим чата.\n\n'
+    text = ('Режим чата.\n\n'
             'В этом режиме ты сможешь вести диалог с модератором.\n'
             'Работают только команды "Начать" и "Обратно в меню", которые отключат этот режим и вопрос будет закрыт')
     await message.answer(text, keyboard=get_back_keyboard(back=False))
@@ -157,7 +154,7 @@ async def close_question(message: Message, question_id, mod_msg=True):
             session.add(question)
             session.commit()
             await bot.api.messages.send(peer_id=question.peer_id,
-                                        message=f'Ваш вопрос был закрыт модератором. Режим чата деактивирован.',
+                                        message=f'Твой вопрос был закрыт модератором. Режим чата выключен.',
                                         random_id=random.randint(1, message.peer_id),
                                         keyboard=get_main_menu_keyboard())
             if os.getenv('IS_DORM'):
@@ -201,14 +198,28 @@ async def joke_button(event: MessageEvent):
         return await close_question(message, question_id, mod_msg=False)
 
 
+@bl_QA.message(state=fsm.QA.CHAT)
+async def ask_for_chat_off(message: Message):
+    if message.text.lower() in ['обратно в меню', 'начать']:
+        state = await bot.state_dispenser.get(message.peer_id)
+        await bot.state_dispenser.set(message.peer_id, fsm.QA.QUIT, question_id=state.payload.get('question_id'))
+        return await message.answer('Ты правда хочешь выйти из режима чата? В таком случае твой вопрос будет закрыт\n\n'
+                                    'Если да, нажми соответствующую кнопку или напиши '
+                                    '"Да, я хочу закрыть вопрос", в противном случае ответь что-угодно другое',
+                                    keyboard=get_quit_keyboard())
 
-@bl_chat.message()
+
+@bl_QA.message(state=fsm.QA.QUIT)
 async def chat_off(message: Message):
-    if message.text.lower() not in ['начать', 'start', 'обратно в меню']:
-        return
     state = await bot.state_dispenser.get(message.peer_id)
+    question_id = state.payload.get('question_id')
+    if message.text.lower() != 'да, я хочу закрыть вопрос':
+        await bot.state_dispenser.set(message.peer_id, fsm.QA.CHAT, question_id=question_id)
+        return await message.answer('Хорошо, в ближайшее время ты получишь ответ на свой вопрос',
+                                    keyboard=get_back_keyboard(back=False))
+
     with s_factory() as session:
-        question = session.query(Question).where(Question.id == state.payload.get('question_id')).one()
+        question = session.query(Question).where(Question.id == question_id).one()
         question.close = True
         session.add(question)
         session.commit()
@@ -216,5 +227,6 @@ async def chat_off(message: Message):
             await bot.api.messages.send(peer_id=os.getenv('MODER_CHAT_ID'),
                                         message=f'Вопрос #{question.id} закрыт!',
                                         random_id=random.randint(1, message.peer_id))
-        await message.answer('Ваш вопрос закрыт. Режим чата деактивирован.')
+        await message.answer('Твой вопрос закрыт. Режим чата выключен')
     return await start_message(message)
+
