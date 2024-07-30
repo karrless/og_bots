@@ -1,0 +1,14 @@
+[Unit]
+Description=OG-bot
+After=multi-user.target
+
+[Service]
+User=remoteamd
+Group=root
+WorkingDirectory=/home/remoteadm/og_bots/
+Type=simple
+Restart=on-failure
+ExecStart=poetry run python -m src.run
+
+[Install]
+WantedBy=multi-user.target

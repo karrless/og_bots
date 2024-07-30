@@ -146,10 +146,10 @@ async def close_question(message: Message, question_id, mod_msg=True):
         if not str(question_id).isdigit():
             return await message.answer(f'{question_id} не число')
         question: Optional[Question] = session.query(Question).where(Question.id == question_id).one()
-        text = f'Вопрос #{question.id} закрыт!'
+        text = f'Вопрос #{question_id} закрыт!'
         if question:
             if question.close:
-                return await message.answer(f'Вопрос #{question.id} уже закрыт!')
+                return
             question.close = True
             session.add(question)
             session.commit()
