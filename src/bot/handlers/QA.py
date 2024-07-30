@@ -26,6 +26,9 @@ bl_QA = BotLabeler()
 bl_QA.vbml_ignore_case = True
 bl_QA.auto_rules = [rules.PeerRule(from_chat=False), rules.StateGroupRule(fsm.QA)]
 
+bl_chat = BotLabeler()
+bl_chat.vbml_ignore_case = True
+bl_char.auto_rules = [rules.PeerRule(from_chat=False), rules.StateRule(fsm.QA.CHAT), rules.StateRule(fsm.QA.CHAT)]
 
 
 @bl_QA.message(state=fsm.QA.MENU)
@@ -43,7 +46,7 @@ async def subtopics_handler(message: Message):
     await bot.state_dispenser.set(message.peer_id, fsm.QA.TOPIC, topic=topic)
     keyboard = get_subtopics_keyboard(subtopics)
     text = (f'Вот ответы на распространённые вопросы по теме "{topic}".\n'
-            f'Чтоб задать вопрос по этой теме, нажми на соответсвующую кнопку или напиши "Свой вопрос"')
+            f'Чтоб задать вопрос по этой теме, нажми на соответсвующую кнопку или напиши "Задать свой вопрос"')
     return await message.answer(text, keyboard=keyboard)
 
 
@@ -53,7 +56,7 @@ async def get_answer_handler(message: Message, is_no_subtopic=False):
         return await faq_keys(message)
     state: StatePeer = await bot.state_dispenser.get(message.peer_id)
     topic = state.payload.get('topic')
-    if message.text.lower() == 'свой вопрос':
+    if message.text.lower() == 'задать свой вопрос':
         await bot.state_dispenser.set(message.peer_id, fsm.QA.QUESTION, topic=topic)
         return await get_question(message)
     subtopic = message.text
@@ -81,7 +84,7 @@ async def get_question(message: Message):
             return await faq_keys(message)
         message.text = topic
         return await subtopics_handler(message)
-    if message.text.lower() != 'свой вопрос':
+    if message.text.lower() != 'задать свой вопрос':
         return await message.answer('К сожалению, я тебя не понимаю.\nЕсли нет клавиатуры, напиши "Начать"',
                                     keyboard=get_answer_keyboard())
     await bot.state_dispenser.set(message.peer_id, fsm.QA.QUESTION, topic=topic)
@@ -198,7 +201,7 @@ async def joke_button(event: MessageEvent):
         return await close_question(message, question_id, mod_msg=False)
 
 
-@bl_QA.message(state=fsm.QA.CHAT)
+@bl_chat.message(state=fsm.QA.CHAT)
 async def ask_for_chat_off(message: Message):
     if message.text.lower() in ['обратно в меню', 'начать']:
         state = await bot.state_dispenser.get(message.peer_id)
@@ -209,7 +212,7 @@ async def ask_for_chat_off(message: Message):
                                     keyboard=get_quit_keyboard())
 
 
-@bl_QA.message(state=fsm.QA.QUIT)
+@bl_chat.message(state=fsm.QA.QUIT)
 async def chat_off(message: Message):
     state = await bot.state_dispenser.get(message.peer_id)
     question_id = state.payload.get('question_id')

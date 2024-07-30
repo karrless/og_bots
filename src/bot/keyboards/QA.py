@@ -40,7 +40,7 @@ def get_subtopics_keyboard(subtopics: list):
             keyboard.row()
         keyboard.add(Text(str(subtopic)), color=KeyboardButtonColor.PRIMARY)
     keyboard.row()
-    keyboard.add(Text('Свой вопрос'), color=KeyboardButtonColor.POSITIVE)
+    keyboard.add(Text('Задать свой вопрос'), color=KeyboardButtonColor.POSITIVE)
     keyboard.row()
     keyboard.add(Text('Назад'), color=KeyboardButtonColor.SECONDARY)
     keyboard.add(Text('Обратно в меню'), color=KeyboardButtonColor.SECONDARY)
