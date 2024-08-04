@@ -49,7 +49,7 @@ def get_subtopics_keyboard(subtopics: list):
 
 def get_answer_keyboard():
     keyboard = Keyboard(one_time=False, inline=False)
-    keyboard.add(Text('Свой вопрос'), color=KeyboardButtonColor.POSITIVE)
+    keyboard.add(Text('Задать свой вопрос'), color=KeyboardButtonColor.POSITIVE)
     keyboard.row()
     keyboard.add(Text('Назад'), color=KeyboardButtonColor.SECONDARY)
     keyboard.add(Text('Обратно в меню'), color=KeyboardButtonColor.SECONDARY)

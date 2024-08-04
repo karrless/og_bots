@@ -28,7 +28,7 @@ bl_QA.auto_rules = [rules.PeerRule(from_chat=False), rules.StateGroupRule(fsm.QA
 
 bl_chat = BotLabeler()
 bl_chat.vbml_ignore_case = True
-bl_chat.auto_rules = [rules.PeerRule(from_chat=False), rules.StateRule(fsm.QA.CHAT), rules.StateRule(fsm.QA.CHAT)]
+bl_chat.auto_rules = [rules.PeerRule(from_chat=False), rules.StateRule([fsm.QA.CHAT,fsm.QA.QUIT])]
 
 
 @bl_QA.message(state=fsm.QA.MENU)
