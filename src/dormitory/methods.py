@@ -20,8 +20,8 @@ def get_room(session: Session, comfort: Comfort, number: str) -> Room | None:
 def get_first_comfort_number(session: Session) -> list[str]:
     sets = sorted(set(session.query(Comfort.first).all()))
     numbers = [x[0] for x in sets]
-    msg = numbers[-1:]
-    result = sorted(list(map(str, numbers[:-1]))) + msg
+    msg = numbers[-2:]
+    result = sorted(list(map(int, numbers[:-2]))) + msg
     return list(map(str, result))
 
 
