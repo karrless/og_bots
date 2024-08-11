@@ -1,3 +1,4 @@
+import random
 from math import ceil
 
 from vkbottle import Keyboard, KeyboardButtonColor, Text, Callback
@@ -7,7 +8,6 @@ from src.dormitory.methods import get_first_comfort_number
 
 
 def get_dorm_menu_keyboard(is_dorm_exist: bool = True) -> str:
-
     keyboard = Keyboard(one_time=False, inline=False)
     if is_dorm_exist:
         keyboard.add(Text('Изменить общежитие'))
@@ -40,12 +40,13 @@ def get_first_comfort_number_keyboard():
 
 
 class RoomsKeyboard:
-    def __init__(self, rooms: list[str], columns=2, rows=2):
+    def __init__(self, rooms: list[str], payload: dict, columns=1, rows=1):
         self.columns = columns
         self.rows = rows
-        self.buttons = self.columns*self.rows
-        self.pages = ceil(len(rooms)/self.buttons)
+        self.buttons = self.columns * self.rows
+        self.pages = ceil(len(rooms) / self.buttons)
         self.rooms = rooms
+        self.payload = payload
 
     def get_keyboard(self, page):
         keyboard = Keyboard(one_time=True, inline=False)
@@ -53,18 +54,21 @@ class RoomsKeyboard:
             for row in range(self.rows):
                 i = -1
                 for col in range(self.columns):
-                    keyboard.row()
                     i = page * self.buttons + row * self.columns + col
                     if i >= len(self.rooms):
                         i = -1
                         break
                     keyboard.add(Text(self.rooms[i]), color=KeyboardButtonColor.PRIMARY)
                 if i < 0:
+                    if len(self.rooms) % self.columns != 0:
+                        keyboard.row()
                     break
+                keyboard.row()
+
             if self.pages > 1:
-                keyboard.add(Callback('⬅️', {'rooms_page': 'back'}))
+                keyboard.add(Text('⬅️', payload=self.payload))
                 keyboard.add(Callback(f'{page + 1}/{self.pages}', {'cmd': 'joke'}))
-                keyboard.add(Callback('➡️', {'rooms_page': 'next'}))
+                keyboard.add(Text('➡️', payload=self.payload))
                 keyboard.row()
 
         keyboard.add(Text('Назад'))

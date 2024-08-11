@@ -8,6 +8,10 @@ def get_comfort(session: Session, first: str, second: int = None, third: int = N
                                         Comfort.second == second, Comfort.third == third).first()
 
 
+def get_comfort_by_name(session: Session, name: str):
+    return session.query(Comfort).where(Comfort.name == name).first()
+
+
 def get_room(session: Session, comfort: Comfort, number: str) -> Room | None:
     return session.query(Room).where(Room.comfort_name == comfort.name,
                                      Room.number == number).first()
@@ -17,7 +21,7 @@ def get_first_comfort_number(session: Session) -> list[str]:
     sets = sorted(set(session.query(Comfort.first).all()))
     numbers = [x[0] for x in sets]
     msg = numbers[-1:]
-    result = sorted(list(map(int, numbers[:-1]))) + msg
+    result = sorted(list(map(str, numbers[:-1]))) + msg
     return list(map(str, result))
 
 
