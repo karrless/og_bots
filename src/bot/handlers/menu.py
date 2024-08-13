@@ -7,7 +7,7 @@ from vkbottle.bot import BotLabeler, rules, Message, MessageEvent
 
 
 from src.bot import bot, fsm
-from src.bot.keyboards import get_main_menu_keyboard, get_dorm_menu_keyboard, get_topics_keyboard
+from src.bot.keyboards import get_main_menu_keyboard, get_dorm_menu_keyboard, get_topics_keyboard, get_back_keyboard
 from src.bot.methods import get_user
 from src.database import s_factory
 from src.database.models import User, Question
@@ -105,6 +105,27 @@ async def dorm_on(message: Message):
         set_key(os.path.abspath('.env'), 'MODER_CHAT', '1')
     return await message.answer(message=f'Перессылка в чат {"включена" if os.environ["MODER_CHAT"] else "выключена"}',
                                 keyboard=get_main_menu_keyboard(True))
+
+
+@bl.message(text='Отправить_всем-общажникам:)')
+async def msg_all_dorm(message: Message):
+    await bot.state_dispenser.set(message.peer_id, fsm.Admin.SEND_DORM)
+    return await message.answer(message="Напиши, что ты хочешь всем отправить",
+                                keyboard=get_back_keyboard())
+
+
+@bl.message(state=fsm.Admin.SEND_DORM)
+async def msg_all_dorm_send(message: Message):
+    if message.text.lower() in ['назад', 'обратно в меню']:
+        return await start_message(message)
+    await start_message(message)
+    with s_factory() as session:
+        users: list[User] = session.query(User).where(User.room_id != None).all()
+    for user in users:
+        await bot.api.messages.send(peer_id=user.peer_id,
+                                    message=message.text,
+                                    random_id=random.randint(1, user.peer_id))
+
 
 
 @bl.raw_event(GroupEventType.MESSAGE_EVENT,

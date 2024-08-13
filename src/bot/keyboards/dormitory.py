@@ -51,7 +51,7 @@ class RoomsKeyboard:
         self.payload = payload
 
     def get_keyboard(self, page):
-        keyboard = Keyboard(one_time=True, inline=False)
+        keyboard = Keyboard(one_time=False, inline=False)
         if self.rooms:
             for row in range(self.rows):
                 i = -1

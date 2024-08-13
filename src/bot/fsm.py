@@ -34,3 +34,7 @@ class QA(BaseStateGroup):
     CHAT = 'chat'
 
     QUIT = 'quit'
+
+
+class Admin(BaseStateGroup):
+    SEND_DORM = 'send dorm'

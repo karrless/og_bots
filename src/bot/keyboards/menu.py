@@ -14,12 +14,13 @@ def get_main_menu_keyboard(admin: bool = False):
         keyboard.add(Text('Найти соседей'), color=KeyboardButtonColor.POSITIVE)
         if admin:
             keyboard.row()
-            keyboard.add(Text('Выключить-поиск_соседей:)'), color=KeyboardButtonColor.NEGATIVE)
-            keyboard.row()
-            if bool(os.getenv('MODER_CHAT')):
-                keyboard.add(Text('Выключить-перессылку_в-чат:)'), color=KeyboardButtonColor.NEGATIVE)
-            else:
-                keyboard.add(Text('Включить-перессылку_в-чат:)'), color=KeyboardButtonColor.POSITIVE)
+            keyboard.add(Text('Отправить_всем-общажникам:)'))
+            # keyboard.add(Text('Выключить-поиск_соседей:)'), color=KeyboardButtonColor.NEGATIVE)
+            # keyboard.row()
+            # if bool(os.getenv('MODER_CHAT')):
+            #     keyboard.add(Text('Выключить-перессылку_в-чат:)'), color=KeyboardButtonColor.NEGATIVE)
+            # else:
+            #     keyboard.add(Text('Включить-перессылку_в-чат:)'), color=KeyboardButtonColor.POSITIVE)
         return keyboard.get_json()
     else:
         return get_topics_keyboard(is_dorm, admin)
