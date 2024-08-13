@@ -1,18 +1,19 @@
 import random
 import re
 
+import sqlalchemy
 from vkbottle.bot import BotLabeler, rules, Message, MessageEvent
 from vkbottle import GroupEventType
 
 from src.bot import bot, fsm
-from src.bot.handlers.menu import neighbour_menu
+from src.bot.handlers.menu import neighbour_menu, start_message
 from src.bot.keyboards import get_numbers_keyboard, RoomsKeyboard, get_first_comfort_number_keyboard, \
     get_main_menu_keyboard
 from src.bot.methods import get_user
 from src.database import s_factory
 from src.database.models import User, Comfort, Room
 from src.dormitory.methods import get_first_comfort_number, get_second_comfort_number, get_third_comfort_number, \
-    get_comfort, get_room, get_comfort_by_name
+    get_comfort, get_room
 
 bl = BotLabeler()
 bl.vbml_ignore_case = True
@@ -35,11 +36,32 @@ async def start_get_comfort(message: Message, _re: bool = False):
 async def change_room(message: Message):
     with s_factory() as session:
         user: User = get_user(session, message.peer_id)
-        comfort: Comfort = get_comfort_by_name(session, user.comfort_name)
+        comfort: Comfort = user.comfort
 
     await bot.state_dispenser.set(user.peer_id, fsm.Dormitory.SELECT_ROOM, first=comfort.first,
                                   second=comfort.second, third=comfort.third, page=0, edit=True)
     return await get_room_number(message)
+
+
+@bl.message(text='Удалить запись')
+async def change_room(message: Message):
+    with s_factory() as session:
+        user: User = get_user(session, message.peer_id)
+        comfort: Comfort = user.comfort
+        pre_room = user.room
+
+        user.comfort = None
+        user.comfort_name = None
+        user.room = None
+        session.add(user)
+        if pre_room:
+            if len(pre_room.users) < 1:
+                session.delete(pre_room)
+        session.commit()
+
+    await message.answer('Ваша запись была успешно удалена!')
+
+    return await start_message(message)
 
 
 @bl.message(state=fsm.Dormitory.FIRST_NUMBER)

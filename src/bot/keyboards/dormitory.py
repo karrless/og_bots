@@ -10,8 +10,10 @@ from src.dormitory.methods import get_first_comfort_number
 def get_dorm_menu_keyboard(is_dorm_exist: bool = True) -> str:
     keyboard = Keyboard(one_time=False, inline=False)
     if is_dorm_exist:
-        keyboard.add(Text('Изменить общежитие'))
-        keyboard.add(Text('Изменить комнату'))
+        keyboard.add(Text('Изменить общежитие'), color=KeyboardButtonColor.PRIMARY)
+        keyboard.add(Text('Изменить комнату'), color=KeyboardButtonColor.PRIMARY)
+        keyboard.row()
+        keyboard.add(Text('Удалить запись'), color=KeyboardButtonColor.NEGATIVE)
     else:
         keyboard.add(Text('Указать жильё'), color=KeyboardButtonColor.POSITIVE)
     keyboard.row()
