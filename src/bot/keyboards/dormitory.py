@@ -40,7 +40,7 @@ def get_first_comfort_number_keyboard():
 
 
 class RoomsKeyboard:
-    def __init__(self, rooms: list[str], payload: dict, columns=1, rows=1):
+    def __init__(self, rooms: list[str], payload: dict, columns=3, rows=4):
         self.columns = columns
         self.rows = rows
         self.buttons = self.columns * self.rows
